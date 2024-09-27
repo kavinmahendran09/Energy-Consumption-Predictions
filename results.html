@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .card {
+            background-color: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .back-button {
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Prediction Results</h1>
+        <div class="card">
+            <h2>Predicted Energy Consumption:</h2>
+            <p>Random Forest: {{ predictions['Random Forest'] }}</p>
+            <p>Linear Regression: {{ predictions['Linear Regression'] }}</p>
+            <p>KNN Regression: {{ predictions['KNN Regression'] }}</p>
+        </div>
+
+        <div class="card">
+            <h2>Model R² Scores:</h2>
+            <p>Random Forest: {{ r2_scores['Random Forest'] }}</p>
+            <p>Linear Regression: {{ r2_scores['Linear Regression'] }}</p>
+            <p>KNN Regression: {{ r2_scores['KNN Regression'] }}</p>
+        </div>
+
+        <div class="card">
+            <h2>Prediction vs Actual Plots:</h2>
+            {% for model_name, plot_url in plot_urls.items() %}
+            <h3>{{ model_name }}:</h3>
+            <img src="data:image/png;base64,{{ plot_url }}">
+            {% endfor %}
+        </div>
+        <a href="/" class="back-button">Back</a>
+    </div>
+
+</body>
+</html>
