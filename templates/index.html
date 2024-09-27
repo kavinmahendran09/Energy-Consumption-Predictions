@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Consumption Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"], select {
+            width: calc(100% - 20px); /* Make input and select fields smaller */
+            padding: 8px; /* Smaller padding */
+            margin: 10px 0; /* Maintain margin */
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box; /* Ensure padding does not affect total width */
+        }
+        button {
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            background-color: #28a745;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .card {
+            background-color: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Energy Consumption Prediction</h1>
+
+        <form action="/predict" method="POST">
+            <label for="date">Select Date:</label>
+            <select name="date" id="date">
+                <option value="2024-09-27">2024-09-27</option>
+                <option value="2024-09-28">2024-09-28</option>
+                <option value="2024-09-29">2024-09-29</option>
+                <option value="2024-09-30">2024-09-30</option>
+                <option value="2024-10-01">2024-10-01</option>
+                <option value="2024-10-02">2024-10-02</option>
+                <option value="2024-10-03">2024-10-03</option>
+            </select>
+
+            <label for="temp">Temperature (Fahrenheit):</label>
+            <input type="text" id="temp" name="temp" placeholder="Enter temperature">
+
+            <label for="humidity">Humidity (%):</label>
+            <input type="text" id="humidity" name="humidity" placeholder="Enter humidity">
+
+            <button type="submit">Predict</button>
+        </form>
+
+        <form action="/real-time" method="POST">
+            <button type="submit">Get Real-Time Data</button>
+        </form>
+
+        <div id="results">
+            <!-- Display results after prediction -->
+            {% if result %}
+            <div class="card">
+                <h2>Prediction Result</h2>
+                <p>{{ result }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+echo "# Energy-Consumption-Prediction" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/kavinmahendran09/Energy-Consumption-Prediction.git
+git push -u origin main
