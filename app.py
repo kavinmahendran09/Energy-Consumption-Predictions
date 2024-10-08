@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import matplotlib
-matplotlib.use('Agg')  # Use a non-GUI backend
-import matplotlib.pyplot as plt
+import requests  # Add this for API call
 from datetime import datetime
 import io
 import base64
@@ -12,7 +11,12 @@ from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.metrics import r2_score
 
+matplotlib.use('Agg')  # Use a non-GUI backend
+import matplotlib.pyplot as plt
+
 app = Flask(__name__)
+
+API_KEY = '656df056e407fd93b840d048945a7bbf'  # Replace with your actual API key
 
 # Load data
 energy_consumption_df = pd.read_csv('parameters.csv')
@@ -44,17 +48,36 @@ models = {
 for model in models.values():
     model.fit(X_train, y_train)
 
+# Function to fetch real-time weather data using OpenWeather API
+def get_weather_data(api_key, city):
+    base_url = "http://api.openweathermap.org/data/2.5/weather"
+    params = {
+        'q': city,
+        'appid': api_key,
+        'units': 'imperial'
+    }
+
+    response = requests.get(base_url, params=params)
+    weather_data = response.json()
+
+    if response.status_code == 200:
+        return weather_data
+    else:
+        print(f"Error: {weather_data['message']}")
+        return None
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
-def predict():
-    # Get user input
-    date = request.form['date']
-    temp = float(request.form['temp'])
-    humidity = float(request.form['humidity'])
-
+def predict(temp=None, humidity=None, date=None):
+    if not temp or not humidity:
+        # Get user input from form
+        date = request.form['date']
+        temp = float(request.form['temp'])
+        humidity = float(request.form['humidity'])
+    
     # Process date and prepare input features
     date_obj = datetime.strptime(date, '%Y-%m-%d')
     month = date_obj.month
@@ -107,12 +130,17 @@ def predict():
 def real_time():
     # Get today's date
     today = datetime.today().strftime('%Y-%m-%d')
-    
-    # Placeholder for getting real-time temperature and humidity
-    temp = 75  # Replace with actual real-time data retrieval
-    humidity = 60  # Replace with actual real-time data retrieval
 
-    return predict(temp=temp, humidity=humidity, date=today)
+    # Fetch real-time weather data (replace 'City Name' with your desired city)
+    city = "Bareilly"
+    weather_data = get_weather_data(API_KEY, city)
+
+    if weather_data:
+        temp = weather_data['main']['temp']
+        humidity = weather_data['main']['humidity']
+        return predict(temp=temp, humidity=humidity, date=today)
+    else:
+        return "Error fetching real-time weather data"
 
 if __name__ == '__main__':
     app.run(debug=True)
