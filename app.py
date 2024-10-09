@@ -20,7 +20,7 @@ API_KEY = '656df056e407fd93b840d048945a7bbf'  # Replace with your actual API key
 
 # Load data
 energy_consumption_df = pd.read_csv('parameters.csv')
-smart_meter_df = pd.read_csv('smart_meter.csv')
+smart_meter_df = pd.read_csv('smart_meter_reduced.csv')
 
 # Data preparation
 energy_consumption_df['datetime'] = pd.to_datetime(energy_consumption_df['datetime'], errors='coerce')
