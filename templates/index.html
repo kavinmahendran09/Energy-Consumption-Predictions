@@ -19,13 +19,13 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        input[type="text"], select {
-            width: calc(100% - 20px); /* Make input and select fields smaller */
-            padding: 8px; /* Smaller padding */
-            margin: 10px 0; /* Maintain margin */
+        input[type="text"], input[type="date"] {
+            width: calc(100% - 20px);
+            padding: 8px;
+            margin: 10px 0;
             border-radius: 5px;
             border: 1px solid #ccc;
-            box-sizing: border-box; /* Ensure padding does not affect total width */
+            box-sizing: border-box;
         }
         button {
             padding: 10px;
@@ -56,21 +56,13 @@
 
         <form action="/predict" method="POST">
             <label for="date">Select Date:</label>
-            <select name="date" id="date">
-                <option value="2024-09-27">2024-09-27</option>
-                <option value="2024-09-28">2024-09-28</option>
-                <option value="2024-09-29">2024-09-29</option>
-                <option value="2024-09-30">2024-09-30</option>
-                <option value="2024-10-01">2024-10-01</option>
-                <option value="2024-10-02">2024-10-02</option>
-                <option value="2024-10-03">2024-10-03</option>
-            </select>
+            <input type="date" id="date" name="date" required>
 
             <label for="temp">Temperature (Fahrenheit):</label>
-            <input type="text" id="temp" name="temp" placeholder="Enter temperature">
+            <input type="text" id="temp" name="temp" placeholder="Enter temperature" required>
 
             <label for="humidity">Humidity (%):</label>
-            <input type="text" id="humidity" name="humidity" placeholder="Enter humidity">
+            <input type="text" id="humidity" name="humidity" placeholder="Enter humidity" required>
 
             <button type="submit">Predict</button>
         </form>

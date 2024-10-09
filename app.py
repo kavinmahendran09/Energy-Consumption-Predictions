@@ -24,8 +24,8 @@ smart_meter_df = pd.read_csv('smart_meter.csv')
 
 # Data preparation
 energy_consumption_df['datetime'] = pd.to_datetime(energy_consumption_df['datetime'], errors='coerce')
-smart_meter_df['x_Timestamp'] = pd.to_datetime(smart_meter_df['x_Timestamp'], errors='coerce')
-merged_df = pd.merge(energy_consumption_df, smart_meter_df, how='inner', left_on='datetime', right_on='x_Timestamp')
+smart_meter_df['date'] = pd.to_datetime(smart_meter_df['date'], errors='coerce')
+merged_df = pd.merge(energy_consumption_df, smart_meter_df, how='inner', left_on='datetime', right_on='date')
 merged_df['month'] = merged_df['datetime'].dt.month
 merged_df['day_of_week'] = merged_df['datetime'].dt.dayofweek
 merged_df['is_weekend'] = merged_df['day_of_week'].apply(lambda x: 1 if x >= 5 else 0)
