@@ -9,8 +9,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
-from sklearn.svm import SVR  # Import SVR
-from sklearn.metrics import r2_score
+from sklearn.svm import SVR
+from sklearn.metrics import r2_score, mean_absolute_error
 
 matplotlib.use('Agg')  # Use a non-GUI backend
 import matplotlib.pyplot as plt
@@ -18,6 +18,9 @@ import matplotlib.pyplot as plt
 app = Flask(__name__)
 
 API_KEY = '656df056e407fd93b840d048945a7bbf'  # Replace with your actual API key
+
+# Global variable to store the input used in predictions
+global_input_data = None
 
 # Load data
 energy_consumption_df = pd.read_csv('parameters.csv')
@@ -45,7 +48,7 @@ models = {
     'Random Forest': RandomForestRegressor(),
     'Linear Regression': LinearRegression(),
     'KNN Regression': KNeighborsRegressor(),
-    'SVR': SVR()  # Replace Decision Tree with SVR
+    'SVR': SVR()
 }
 
 # Train the models
@@ -85,8 +88,10 @@ def get_weather_data(api_key, city):
 def index():
     return render_template('index.html')
 
-@app.route('/predict', methods=['POST'])
+@app.route('/predict', methods=['POST','GET'])
 def predict(temp=None, tempmax=None, tempmin=None, feelslike=None, humidity=None, precip=None, windspeed=None, date=None):
+    global global_input_data  # Use this to store the input data for predictions
+
     if not temp or not humidity:
         # Get user input from form
         date = request.form['date']
@@ -107,11 +112,15 @@ def predict(temp=None, tempmax=None, tempmin=None, feelslike=None, humidity=None
     X_input = pd.DataFrame([[temp, tempmax, tempmin, feelslike, humidity, precip, windspeed, month, is_weekend]], 
                            columns=['temp', 'tempmax', 'tempmin', 'feelslike', 'humidity', 'precip', 'windspeed', 'month', 'is_weekend'])
 
-    # Predict using each model
-    predictions = {name: model.predict(X_input)[0] for name, model in models.items()}
+    # Store this input data in a global variable to reuse in /analysis
+    global_input_data = X_input
 
-    # Calculate R² scores for the models
-    r2_scores = {name: r2_score(y_test, model.predict(X_test)) for name, model in models.items()}
+    # Predict using each model and round to 3 decimal places
+    predictions = {name: round(model.predict(X_input)[0], 3) for name, model in models.items()}
+
+    # Calculate R² and MAE scores for the models and round to 3 decimal places
+    r2_scores = {name: round(r2_score(y_test, model.predict(X_test)), 3) for name, model in models.items()}
+    mae_scores = {name: round(mean_absolute_error(y_test, model.predict(X_test)), 3) for name, model in models.items()}
 
     # Prepare plots
     plot_urls = {}
@@ -144,7 +153,7 @@ def predict(temp=None, tempmax=None, tempmin=None, feelslike=None, humidity=None
     img_all.seek(0)
     plot_urls['All Model'] = base64.b64encode(img_all.getvalue()).decode('utf8')
 
-    return render_template('results.html', predictions=predictions, r2_scores=r2_scores, plot_urls=plot_urls)
+    return render_template('predictions.html', predictions=predictions, r2_scores=r2_scores, mae_scores=mae_scores, plot_urls=plot_urls)
 
 @app.route('/real-time', methods=['POST'])
 def real_time():
@@ -169,6 +178,38 @@ def real_time():
         )
     else:
         return "Error fetching real-time weather data"
+
+@app.route('/analysis')
+def analysis():
+    global global_input_data  # Use the same input data as in /predict
+
+    if global_input_data is None:
+        return "Error: No input data available for analysis."
+
+    # Predict using each model on the same input data
+    predictions = {name: round(model.predict(global_input_data)[0], 3) for name, model in models.items()}
+
+    # Calculate R² and MAE scores for the models and round to 3 decimal places
+    r2_scores = {name: round(r2_score(y_test, model.predict(X_test)), 3) for name, model in models.items()}
+    mae_scores = {name: round(mean_absolute_error(y_test, model.predict(X_test)), 3) for name, model in models.items()}
+
+    # Prepare plots for the test set (optional)
+    plot_urls = {}
+    for name, model in models.items():
+        img = io.BytesIO()
+        plt.figure(figsize=(10, 6))
+        plt.scatter(y_test, model.predict(X_test), label=name)
+        plt.plot([y.min(), y.max()], [y.min(), y.max()], 'r--')
+        plt.xlabel('Actual Consumption (kWh)')
+        plt.ylabel('Predicted Consumption (kWh)')
+        plt.title(f'{name} Prediction vs Actual')
+        plt.legend()
+        plt.savefig(img, format='png')
+        plt.close()
+        img.seek(0)
+        plot_urls[name] = base64.b64encode(img.getvalue()).decode('utf8')
+
+    return render_template('results.html', predictions=predictions, r2_scores=r2_scores, mae_scores=mae_scores, plot_urls=plot_urls)
 
 if __name__ == '__main__':
     app.run(debug=True)
