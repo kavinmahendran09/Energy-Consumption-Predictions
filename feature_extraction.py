@@ -1,22 +1,21 @@
 import pandas as pd
 
-# Load the smart meter data
-df = pd.read_csv('smart_meter.csv')
+# Load your dataset
+smart_meter_df = pd.read_csv('smart_meter_reduced.csv')
 
-# Convert the 'x_Timestamp' column to datetime to extract the date
-df['x_Timestamp'] = pd.to_datetime(df['x_Timestamp'])
+# Ensure 'date' is in datetime format
+smart_meter_df['date'] = pd.to_datetime(smart_meter_df['date'], errors='coerce')
 
-# Group by date (without time) and calculate the mean for each day
-df['date'] = df['x_Timestamp'].dt.date  # Extract just the date part
-daily_avg = df.groupby('date').agg({
-    't_kWh': 'mean',
-    'z_Avg Voltage (Volt)': 'mean',
-    'z_Avg Current (Amp)': 'mean',
-    'y_Freq (Hz)': 'mean',
-    'meter': 'first'  # Keep the first value of 'meter' for each day
-}).reset_index()
+# Generate a complete date range for the dataset
+date_range = pd.date_range(start=smart_meter_df['date'].min(), end=smart_meter_df['date'].max(), freq='D')
 
-# Save the reduced dataset to a new CSV file
-daily_avg.to_csv('smart_meter_reduced.csv', index=False)
+# Find missing dates
+missing_dates = date_range[~date_range.isin(smart_meter_df['date'])]
 
-print("Reduced dataset saved as 'smart_meter_reduced.csv'.")
+# Display missing dates
+if len(missing_dates) > 0:
+    print("Missing Dates:")
+    for missing_date in missing_dates:
+        print(missing_date.date())
+else:
+    print("No missing dates.")

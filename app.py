@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import matplotlib
-import requests  # Add this for API call
+import requests
 from datetime import datetime
 import io
 import base64
@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
+from sklearn.svm import SVR  # Import SVR
 from sklearn.metrics import r2_score
 
 matplotlib.use('Agg')  # Use a non-GUI backend
@@ -26,13 +27,15 @@ smart_meter_df = pd.read_csv('smart_meter_reduced.csv')
 energy_consumption_df['datetime'] = pd.to_datetime(energy_consumption_df['datetime'], errors='coerce')
 smart_meter_df['date'] = pd.to_datetime(smart_meter_df['date'], errors='coerce')
 merged_df = pd.merge(energy_consumption_df, smart_meter_df, how='inner', left_on='datetime', right_on='date')
+
+# Create new features
 merged_df['month'] = merged_df['datetime'].dt.month
 merged_df['day_of_week'] = merged_df['datetime'].dt.dayofweek
 merged_df['is_weekend'] = merged_df['day_of_week'].apply(lambda x: 1 if x >= 5 else 0)
 
 # Features and target variable
-X = merged_df[['temp', 'humidity', 'z_Avg Voltage (Volt)', 'z_Avg Current (Amp)', 'month', 'is_weekend']]
-y = merged_df['t_kWh']
+X = merged_df[['temp', 'tempmax', 'tempmin', 'feelslike', 'humidity', 'precip', 'windspeed', 'month', 'is_weekend']]
+y = merged_df['t_kWh']  # Target variable remains unchanged
 
 # Split the data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -41,7 +44,8 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 models = {
     'Random Forest': RandomForestRegressor(),
     'Linear Regression': LinearRegression(),
-    'KNN Regression': KNeighborsRegressor()
+    'KNN Regression': KNeighborsRegressor(),
+    'SVR': SVR()  # Replace Decision Tree with SVR
 }
 
 # Train the models
@@ -54,14 +58,25 @@ def get_weather_data(api_key, city):
     params = {
         'q': city,
         'appid': api_key,
-        'units': 'imperial'
+        'units': 'metric'  # Use metric for temperature in Celsius
     }
 
     response = requests.get(base_url, params=params)
     weather_data = response.json()
 
     if response.status_code == 200:
-        return weather_data
+        # Extract necessary data
+        main = weather_data['main']
+        wind = weather_data['wind']
+        return {
+            'temp': main['temp'],
+            'tempmax': main['temp_max'],
+            'tempmin': main['temp_min'],
+            'feelslike': main['feels_like'],
+            'humidity': main['humidity'],
+            'precip': weather_data.get('rain', {}).get('1h', 0),  # Rain volume in the last 1 hour (default to 0 if not available)
+            'windspeed': wind['speed']
+        }
     else:
         print(f"Error: {weather_data['message']}")
         return None
@@ -71,21 +86,26 @@ def index():
     return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
-def predict(temp=None, humidity=None, date=None):
+def predict(temp=None, tempmax=None, tempmin=None, feelslike=None, humidity=None, precip=None, windspeed=None, date=None):
     if not temp or not humidity:
         # Get user input from form
         date = request.form['date']
         temp = float(request.form['temp'])
+        tempmax = float(request.form['tempmax'])
+        tempmin = float(request.form['tempmin'])
+        feelslike = float(request.form['feelslike'])
         humidity = float(request.form['humidity'])
-    
+        precip = float(request.form['precip'])
+        windspeed = float(request.form['windspeed'])
+
     # Process date and prepare input features
     date_obj = datetime.strptime(date, '%Y-%m-%d')
     month = date_obj.month
     is_weekend = 1 if date_obj.weekday() >= 5 else 0
 
     # Create feature set for prediction
-    X_input = pd.DataFrame([[temp, humidity, 230, 5, month, is_weekend]],
-                           columns=['temp', 'humidity', 'z_Avg Voltage (Volt)', 'z_Avg Current (Amp)', 'month', 'is_weekend'])
+    X_input = pd.DataFrame([[temp, tempmax, tempmin, feelslike, humidity, precip, windspeed, month, is_weekend]], 
+                           columns=['temp', 'tempmax', 'tempmin', 'feelslike', 'humidity', 'precip', 'windspeed', 'month', 'is_weekend'])
 
     # Predict using each model
     predictions = {name: model.predict(X_input)[0] for name, model in models.items()}
@@ -100,8 +120,8 @@ def predict(temp=None, humidity=None, date=None):
         plt.figure(figsize=(10, 6))
         plt.scatter(y_test, model.predict(X_test), label=name)
         plt.plot([y.min(), y.max()], [y.min(), y.max()], 'r--')
-        plt.xlabel('Actual Consumption')
-        plt.ylabel('Predicted Consumption')
+        plt.xlabel('Actual Consumption (kWh)')
+        plt.ylabel('Predicted Consumption (kWh)')
         plt.title(f'{name} Prediction vs Actual')
         plt.legend()
         plt.savefig(img, format='png')
@@ -113,10 +133,10 @@ def predict(temp=None, humidity=None, date=None):
     img_all = io.BytesIO()
     plt.figure(figsize=(10, 6))
     for name, model in models.items():
-        plt.scatter(y_test, model.predict(X_test), label=name, alpha=0.6)  # Use alpha for better visibility
+        plt.scatter(y_test, model.predict(X_test), label=name, alpha=0.6)
     plt.plot([y.min(), y.max()], [y.min(), y.max()], 'r--', label='Ideal Prediction')
-    plt.xlabel('Actual Consumption')
-    plt.ylabel('Predicted Consumption')
+    plt.xlabel('Actual Consumption (kWh)')
+    plt.ylabel('Predicted Consumption (kWh)')
     plt.title('All Models Prediction vs Actual')
     plt.legend()
     plt.savefig(img_all, format='png')
@@ -136,9 +156,17 @@ def real_time():
     weather_data = get_weather_data(API_KEY, city)
 
     if weather_data:
-        temp = weather_data['main']['temp']
-        humidity = weather_data['main']['humidity']
-        return predict(temp=temp, humidity=humidity, date=today)
+        # Use the fetched weather data for prediction
+        return predict(
+            temp=weather_data['temp'],
+            tempmax=weather_data['tempmax'],
+            tempmin=weather_data['tempmin'],
+            feelslike=weather_data['feelslike'],
+            humidity=weather_data['humidity'],
+            precip=weather_data['precip'],
+            windspeed=weather_data['windspeed'],
+            date=today
+        )
     else:
         return "Error fetching real-time weather data"
 
