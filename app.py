@@ -12,17 +12,16 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
 from sklearn.metrics import r2_score, mean_absolute_error
 
-matplotlib.use('Agg')  # Use a non-GUI backend
+matplotlib.use('Agg')  
 import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 
-API_KEY = '656df056e407fd93b840d048945a7bbf'  # Replace with your actual API key
+API_KEY = '656df056e407fd93b840d048945a7bbf' 
 
-# Global variable to store the input used in predictions
 global_input_data = None
 
-# Load data
+# Load datasets
 energy_consumption_df = pd.read_csv('parameters.csv')
 smart_meter_df = pd.read_csv('smart_meter_reduced.csv')
 
@@ -38,7 +37,7 @@ merged_df['is_weekend'] = merged_df['day_of_week'].apply(lambda x: 1 if x >= 5 e
 
 # Features and target variable
 X = merged_df[['temp', 'tempmax', 'tempmin', 'feelslike', 'humidity', 'precip', 'windspeed', 'month', 'is_weekend']]
-y = merged_df['t_kWh']  # Target variable remains unchanged
+y = merged_df['t_kWh']  
 
 # Split the data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -61,7 +60,7 @@ def get_weather_data(api_key, city):
     params = {
         'q': city,
         'appid': api_key,
-        'units': 'metric'  # Use metric for temperature in Celsius
+        'units': 'imperial'  
     }
 
     response = requests.get(base_url, params=params)
@@ -77,7 +76,7 @@ def get_weather_data(api_key, city):
             'tempmin': main['temp_min'],
             'feelslike': main['feels_like'],
             'humidity': main['humidity'],
-            'precip': weather_data.get('rain', {}).get('1h', 0),  # Rain volume in the last 1 hour (default to 0 if not available)
+            'precip': weather_data.get('rain', {}).get('1h', 0),  
             'windspeed': wind['speed']
         }
     else:
@@ -88,12 +87,11 @@ def get_weather_data(api_key, city):
 def index():
     return render_template('index.html')
 
-@app.route('/predict', methods=['POST','GET'])
+@app.route('/predict', methods=['POST', 'GET'])
 def predict(temp=None, tempmax=None, tempmin=None, feelslike=None, humidity=None, precip=None, windspeed=None, date=None):
-    global global_input_data  # Use this to store the input data for predictions
+    global global_input_data  
 
     if not temp or not humidity:
-        # Get user input from form
         date = request.form['date']
         temp = float(request.form['temp'])
         tempmax = float(request.form['tempmax'])
@@ -122,7 +120,6 @@ def predict(temp=None, tempmax=None, tempmin=None, feelslike=None, humidity=None
     r2_scores = {name: round(r2_score(y_test, model.predict(X_test)), 3) for name, model in models.items()}
     mae_scores = {name: round(mean_absolute_error(y_test, model.predict(X_test)), 3) for name, model in models.items()}
 
-    # Prepare plots
     plot_urls = {}
     for name, model in models.items():
         img = io.BytesIO()
@@ -138,7 +135,7 @@ def predict(temp=None, tempmax=None, tempmin=None, feelslike=None, humidity=None
         img.seek(0)
         plot_urls[name] = base64.b64encode(img.getvalue()).decode('utf8')
 
-    # New plot for all models in one graph
+    # Combined model plot
     img_all = io.BytesIO()
     plt.figure(figsize=(10, 6))
     for name, model in models.items():
@@ -151,21 +148,18 @@ def predict(temp=None, tempmax=None, tempmin=None, feelslike=None, humidity=None
     plt.savefig(img_all, format='png')
     plt.close()
     img_all.seek(0)
-    plot_urls['All Model'] = base64.b64encode(img_all.getvalue()).decode('utf8')
+    plot_urls['Combined Model'] = base64.b64encode(img_all.getvalue()).decode('utf8')
 
     return render_template('predictions.html', predictions=predictions, r2_scores=r2_scores, mae_scores=mae_scores, plot_urls=plot_urls)
 
 @app.route('/real-time', methods=['POST'])
 def real_time():
-    # Get today's date
     today = datetime.today().strftime('%Y-%m-%d')
 
-    # Fetch real-time weather data (replace 'City Name' with your desired city)
     city = "Bareilly"
     weather_data = get_weather_data(API_KEY, city)
 
     if weather_data:
-        # Use the fetched weather data for prediction
         return predict(
             temp=weather_data['temp'],
             tempmax=weather_data['tempmax'],
@@ -181,20 +175,18 @@ def real_time():
 
 @app.route('/analysis')
 def analysis():
-    global global_input_data  # Use the same input data as in /predict
+    global global_input_data 
 
     if global_input_data is None:
         return "Error: No input data available for analysis."
 
-    # Predict using each model on the same input data
     predictions = {name: round(model.predict(global_input_data)[0], 3) for name, model in models.items()}
 
-    # Calculate R² and MAE scores for the models and round to 3 decimal places
     r2_scores = {name: round(r2_score(y_test, model.predict(X_test)), 3) for name, model in models.items()}
     mae_scores = {name: round(mean_absolute_error(y_test, model.predict(X_test)), 3) for name, model in models.items()}
 
-    # Prepare plots for the test set (optional)
     plot_urls = {}
+    # Individual model plots
     for name, model in models.items():
         img = io.BytesIO()
         plt.figure(figsize=(10, 6))
@@ -208,6 +200,21 @@ def analysis():
         plt.close()
         img.seek(0)
         plot_urls[name] = base64.b64encode(img.getvalue()).decode('utf8')
+
+    # Combined model plot
+    img_all = io.BytesIO()
+    plt.figure(figsize=(10, 6))
+    for name, model in models.items():
+        plt.scatter(y_test, model.predict(X_test), label=name, alpha=0.6)
+    plt.plot([y.min(), y.max()], [y.min(), y.max()], 'r--', label='Ideal Prediction')
+    plt.xlabel('Actual Consumption (kWh)')
+    plt.ylabel('Predicted Consumption (kWh)')
+    plt.title('All Models Prediction vs Actual')
+    plt.legend()
+    plt.savefig(img_all, format='png')
+    plt.close()
+    img_all.seek(0)
+    plot_urls['Combined Model'] = base64.b64encode(img_all.getvalue()).decode('utf8')
 
     return render_template('results.html', predictions=predictions, r2_scores=r2_scores, mae_scores=mae_scores, plot_urls=plot_urls)
 

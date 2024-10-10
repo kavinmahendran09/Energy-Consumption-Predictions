@@ -12,10 +12,10 @@ smart_meter_df = pd.read_csv('smart_meter.csv')
 
 # Convert datetime columns to the same type
 energy_consumption_df['datetime'] = pd.to_datetime(energy_consumption_df['datetime'], errors='coerce')
-smart_meter_df['x_Timestamp'] = pd.to_datetime(smart_meter_df['x_Timestamp'], errors='coerce')
+smart_meter_df['date'] = pd.to_datetime(smart_meter_df['date'], errors='coerce')
 
 # Merge the DataFrames
-merged_df = pd.merge(energy_consumption_df, smart_meter_df, how='inner', left_on='datetime', right_on='x_Timestamp')
+merged_df = pd.merge(energy_consumption_df, smart_meter_df, how='inner', left_on='datetime', right_on='date')
 
 # Check if merged_df is empty before proceeding
 if merged_df.empty:

@@ -26,6 +26,13 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
+        .inner-card {
+            background-color: #acf3a9; /* Light blue background for the inner card */
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
         img {
             max-width: 100%;
             height: auto;
@@ -64,7 +71,11 @@
             <p>Linear Regression: {{ r2_scores['Linear Regression'] }}</p>
             <p>KNN Regression: {{ r2_scores['KNN Regression'] }}</p>
             <p>SVR: {{ r2_scores['SVR'] }}</p>  <!-- Added SVR R² score -->
-            <p class="final">Our most accurate prediction is <span style="color: blue;">Random Forest</span></p>
+
+            <!-- Added inner card for the most accurate prediction -->
+            <div class="inner-card">
+                <p class="final">Our most accurate prediction is <span style="color: blue;">Random Forest</span></p>
+            </div>
         </div>
 
         <div class="card">
