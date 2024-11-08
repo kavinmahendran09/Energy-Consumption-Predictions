@@ -27,7 +27,7 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
         .inner-card {
-            background-color: #acf3a9; /* Light blue background for the inner card */
+            background-color: #acf3a9;
             padding: 10px;
             border-radius: 8px;
             margin-top: 15px;
@@ -57,33 +57,26 @@
 
     <div class="container">
         <h1>Prediction Results</h1>
+
         <div class="card">
             <h2>Predicted Energy Consumption:</h2>
-            <p>Random Forest: {{ predictions['Random Forest'] }} kWh</p>
-            <p>Linear Regression: {{ predictions['Linear Regression'] }} kWh</p>
-            <p>KNN Regression: {{ predictions['KNN Regression'] }} kWh</p>
-            <p>SVR: {{ predictions['SVR'] }} kWh</p>  <!-- Added SVR prediction with kWh -->
+            {% for model_name, prediction in predictions.items() %}
+            <p>{{ model_name }}: {{ prediction }} kWh</p>
+            {% endfor %}
         </div>
 
         <div class="card">
             <h2>Model R² Scores:</h2>
-            <p>Random Forest: {{ r2_scores['Random Forest'] }}</p>
-            <p>Linear Regression: {{ r2_scores['Linear Regression'] }}</p>
-            <p>KNN Regression: {{ r2_scores['KNN Regression'] }}</p>
-            <p>SVR: {{ r2_scores['SVR'] }}</p>  <!-- Added SVR R² score -->
-
-            <!-- Added inner card for the most accurate prediction -->
-            <div class="inner-card">
-                <p class="final">Our most accurate prediction is <span style="color: blue;">Random Forest</span></p>
-            </div>
+            {% for model_name, r2 in r2_scores.items() %}
+            <p>{{ model_name }}: {{ r2 }}</p>
+            {% endfor %}
         </div>
 
         <div class="card">
             <h2>Model Mean Absolute Error (MAE):</h2>
-            <p>Random Forest: {{ mae_scores['Random Forest'] }}</p>
-            <p>Linear Regression: {{ mae_scores['Linear Regression'] }}</p>
-            <p>KNN Regression: {{ mae_scores['KNN Regression'] }}</p>
-            <p>SVR: {{ mae_scores['SVR'] }}</p>  <!-- Added SVR MAE -->
+            {% for model_name, mae in mae_scores.items() %}
+            <p>{{ model_name }}: {{ mae }}</p>
+            {% endfor %}
         </div>
 
         <div class="card">
@@ -93,6 +86,7 @@
             <img src="data:image/png;base64,{{ plot_url }}">
             {% endfor %}
         </div>
+
         <a href="/" class="back-button">Home</a>
     </div>
 
